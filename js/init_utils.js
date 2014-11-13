@@ -1,4 +1,4 @@
-function initialize() {
+initGraph = function() {
 
 	var com_dataset = {
 		fillColor : "rgba(151,187,205,0.5)",
@@ -56,29 +56,40 @@ function initialize() {
 
 };
 
-function initSpeedometers(divId, name, maxVal, units) {
+initSpeedometers = function(divId, element, instanceId) {
+
+	id = '#' + divId
+	$(id).empty();
+
+	$(id).append(
+		$('<div>', {
+			id: 'refresh'
+		}).append(
+			$('<button>', {
+				id: 'refresh_button'
+			})),
+		$('<canvas>', {
+			id: 'graphic'
+		}));
 	
-	var canv = document.createElement('canvas');
-	canv.id = 'graphic';
-	var refresh = document.createElement('div');
-	refresh.id = 'refresh';
-	var r_button = document.createElement('button');
-	r_button.id = 'refresh_button';
-
-	document.getElementById(divId).appendChild(refresh);
-	document.getElementById(refresh.id).appendChild(r_button);
-	document.getElementById(divId).appendChild(canv);
-
-	var speedometer = new Speedometer({elementId: divId, canvasId: 'graphic', size: 300, maxVal: maxVal, name: name, units: units});
+	var speedometer = new Speedometer({elementId: divId, 
+										canvasId: 'graphic', 
+											size: 300, 
+											maxVal: element.maxVal, 
+											name: element.name, 
+											units: element.units
+										});
+	// ¡¡NO FUNCIONA!!
+	$('refresh_button').on('click', refresh_data(speedometer, instanceId));
 	speedometer.draw();
 
 	return speedometer;
 
 };
 
-function updateSpeedometers(speedometer, elementId, stats) {
+updateSpeedometers = function(speedometer, instanceId, stats) {
 
-	switch (elementId) {
+	switch (instanceId) {
 
 		case 'cpu':
 		//var cpu = Math.round(stats[0].percCPULoad.value);
@@ -87,7 +98,6 @@ function updateSpeedometers(speedometer, elementId, stats) {
 		break;
 
 		case 'disk':
-
 		//var disk = Math.round(stats[0].percDiskUsed.value);
 		var disk = stats.percDiskUsed;
 		speedometer.drawWithInputValue(disk);

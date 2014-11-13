@@ -1,26 +1,79 @@
+/** Main function.
 
-	var	measures = {
-		percCPULoad: 0,
-		percRAMUsed: 0,
-		percDiskUsed: 0
-	};
+Through calls to different secondary functions, collects the necessary information about
+the virtual machine you want to monitor. Once such data has been collected, draws the
+graph of monitoring, on the screen.
 
-	var speedometer;
+Params:
+- Endpoint ->
+- token -> 
+- vm_id -> id of the vm we want to monitor.
+- elementID -> key to identify the parameter you want to monitor. 
+{Monitoring CPU: 'cpu', Monitoring disk: 'disk', Monitoring RAM: 'mem'}
+- divId -> id of the div where you want to place the monitoring graphic.
+*/
+
+
+
+init_vm = function(vm_id, token, tenant, region, instanceId, divId){
+
+	initGraph();
+
+	var access;
+
+	JSTACK.Keystone.init('https://cloud.lab.fi-ware.org/keystone/v2.0/');
+
+	JSTACK.Keystone.authenticate(undefined, undefined, token, tenant, function(resp) {access = resp.access;});
+
+	compute = JSTACK.Keystone.getservice("compute");
+
+
+	for (e in compute.endpoints) {
+    	compute.endpoints[e].publicURL = 'https://cloud.lab.fi-ware.org/' 
+    									  + compute.endpoints[e].region 
+    									  + "/compute" 
+    									  + compute.endpoints[e].publicURL.replace(/.*:[0-9]*/, "");
+	}
+
+	var element = getVMProperties(vm_id, region, instanceId);
+
+	var measures = getVMmeasures();
+
+	var speedometer = initSpeedometers(divId, element, instanceId);
+
+	updateSpeedometers(speedometer, instanceId, measures);
+
+};
+
+
+/** Getting parameters of the virtual machine
+
+This function makes an API call to get the parameters of 
+the vm's element we want to monitor.
+*/
+
+getVMProperties = function(vm_id, region, instanceId){
+	
+	var server;
+	var flavor;
+	
+
+	//Getting the flavor id
+	JSTACK.Nova.getserverdetail(vm_id, function (resp) { server = resp.server;}, function (error_msg){console.log(error_msg);}, region);
+
+
+	//Getting VM parametres (disk.maxValue and ram.maxValue)	
+	JSTACK.Nova.getflavordetail(server.flavor.id, function (resp) { flavor = resp.flavor;},function (error_msg){console.log(error_msg);},region);
+
 
 	var element = {
-		elementId: this.elementId,
+		instanceId: this.instanceId,
 		name : "",
 		maxVal: 0,
 		units : ""
 	};
 
-function init_vm(endPoint, token, vm_id, elementId, divId){
-
-	initialize();
-
-
-
-	switch(elementId){
+	switch(instanceId){
 
 		case 'cpu':
 		element.name = "CPU";
@@ -30,80 +83,57 @@ function init_vm(endPoint, token, vm_id, elementId, divId){
 
 		case 'disk':
 		element.name = "DISK";
-		element.maxVal = 500;
+		element.maxVal = flavor.disk;
 		element.units = "GB";
 		break;
 
 		case 'mem':
 		element.name = "RAM";
-		element.maxVal = 600;
+		element.maxVal = flavor.ram;
 		element.units = "MB";
 		break;
 
 		default:
-		alert("Error. Can not identify 'elementId'");
+		alert("Error. Can not identify 'instanceId' in getVMProperties");
 
 	};
 
-	speedometer = initSpeedometers(divId, element.name, element.maxVal, element.units);
-
-
-	 measures = {
-		percCPULoad: 90,
-		percRAMUsed: 20,
-		percDiskUsed: 50
-	};
-
-	updateSpeedometers(speedometer, elementId, measures);
-
+	return element;
 
 };
 
-function getVMmeasures() {
 
-	// get flavor
-	//var measures = Monitoring.API.getVMmeasures(ip, options.success, options.error, this.getRegion());
+/** Getting monitoring measures
 
-	return 
+This function makes a call to Monitoring API in order  to collect 
+real-time status of the element that we are monitoring. 
+*/
+
+getVMmeasures = function() {
+
 	
-}
+	//var measures = Monitoring.API.getVMmeasures(vm_id, options.success, options.error, endPoint);
 
-function refresh_data(elementId){
+	var	measures = {
+		percCPULoad: 75,
+		percRAMUsed: 200,
+		percDiskUsed: 160
+	};
 
-
-
-		if(elementId == 'cpu'){
-			if(measures.percCPULoad <= element.maxVal){ 
-				measures.percCPULoad = measures.percCPULoad + 10;
-			}else{
-				measures.percCPULoad = 0;
-			}
-			speedometer.draw();
-			speedometer.drawWithInputValue(measures.percCPULoad);
-
-		}else if (elementId == 'disk'){
-			if(measures.percDiskUsed <= element.maxVal){ 
-				measures.percDiskUsed = measures.percDiskUsed+ 10;
-			}else{
-				measures.percDiskUsed = 0;
-			}
-			speedometer.draw();
-			speedometer.drawWithInputValue(measures.percDiskUsed);
-
-		}else{
-			if(measures.percRAMUsed <= element.maxVal){ 
-				measures.percRAMUsed = measures.percRAMUsed + 10;
-			}else{
-				measures.percRAMUsed = 0;
-			}
-			speedometer.draw();
-			speedometer.drawWithInputValue(measures.percRamkUsed);
-		}
+	return measures;
+	
+};
 
 
+/** Refreshing monitoring measures
+			¡¡NO FUNCIONA!!
+*/
 
+refresh_data = function(speedometer, instanceId){
 
+	var measures = getVMmeasures();
 
-	//var measures = Monitoring.API.getVMmeasures(ip, options.success, options.error, this.getRegion());
+	updateSpeedometers(speedometer, instanceId, measures);
 
 };
+
