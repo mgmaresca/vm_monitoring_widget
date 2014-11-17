@@ -19,30 +19,33 @@ init_vm = function(vm_id, token, tenant, region, instanceId, divId){
 
 	initGraph();
 
-	var access;
+	element = {
+			instanceId: this.instanceId,
+			name : "",
+			maxVal: 0,
+			units : ""
+		};
 
 	JSTACK.Keystone.init('https://cloud.lab.fi-ware.org/keystone/v2.0/');
 
-	JSTACK.Keystone.authenticate(undefined, undefined, token, tenant, function(resp) {access = resp.access;});
+	JSTACK.Keystone.authenticate(undefined, undefined, token, tenant, function(resp) {
+		
+		compute = JSTACK.Keystone.getservice("compute");
+		
+		for (e in compute.endpoints) {
+	    	compute.endpoints[e].publicURL = 'https://cloud.lab.fi-ware.org/' 
+	    									  + compute.endpoints[e].region 
+	    									  + "/compute" 
+	    									  + compute.endpoints[e].publicURL.replace(/.*:[0-9]*/, "");
+		}
 
-	compute = JSTACK.Keystone.getservice("compute");
+		getVMProperties(vm_id, region, instanceId);
 
+		
 
-	for (e in compute.endpoints) {
-    	compute.endpoints[e].publicURL = 'https://cloud.lab.fi-ware.org/' 
-    									  + compute.endpoints[e].region 
-    									  + "/compute" 
-    									  + compute.endpoints[e].publicURL.replace(/.*:[0-9]*/, "");
-	}
+	});
 
-	var element = getVMProperties(vm_id, region, instanceId);
-
-	var measures = getVMmeasures();
-
-	var speedometer = initSpeedometers(divId, element, instanceId);
-
-	updateSpeedometers(speedometer, instanceId, measures);
-
+	
 };
 
 
@@ -56,49 +59,52 @@ getVMProperties = function(vm_id, region, instanceId){
 	
 	var server;
 	var flavor;
-	
+
+	measures = {
+		percCPULoad: 0,
+		percRAMUsed: 0,
+		percDiskUsed: 0
+	};
 
 	//Getting the flavor id
-	JSTACK.Nova.getserverdetail(vm_id, function (resp) { server = resp.server;}, function (error_msg){console.log(error_msg);}, region);
+	JSTACK.Nova.getserverdetail(vm_id, function (resp) { server = resp.server;
+		//Getting VM parametres (disk.maxValue and ram.maxValue)	
+		JSTACK.Nova.getflavordetail(server.flavor.id, function (resp) {
+			flavor = resp.flavor;
 
+			switch(instanceId){
 
-	//Getting VM parametres (disk.maxValue and ram.maxValue)	
-	JSTACK.Nova.getflavordetail(server.flavor.id, function (resp) { flavor = resp.flavor;},function (error_msg){console.log(error_msg);},region);
+				case 'cpu':
+				element.name = "CPU";
+				element.maxVal = 100;
+				element.units = "%";
+				break;
 
+				case 'disk':
+				element.name = "DISK";
+				element.maxVal = flavor.disk;
+				element.units = "GB";
+				break;
 
-	var element = {
-		instanceId: this.instanceId,
-		name : "",
-		maxVal: 0,
-		units : ""
-	};
+				case 'mem':
+				element.name = "RAM";
+				element.maxVal = flavor.ram;
+				element.units = "MB";
+				break;
 
-	switch(instanceId){
+				default:
+				alert("Error. Can not identify 'instanceId' in getVMProperties");
 
-		case 'cpu':
-		element.name = "CPU";
-		element.maxVal = 100;
-		element.units = "%";
-		break;
+			};
 
-		case 'disk':
-		element.name = "DISK";
-		element.maxVal = flavor.disk;
-		element.units = "GB";
-		break;
+			getVMmeasures()
 
-		case 'mem':
-		element.name = "RAM";
-		element.maxVal = flavor.ram;
-		element.units = "MB";
-		break;
+			updateSpeedometers(initSpeedometers(divId, instanceId), instanceId);
 
-		default:
-		alert("Error. Can not identify 'instanceId' in getVMProperties");
+			
+		},function (error_msg){console.log(error_msg);},region);
 
-	};
-
-	return element;
+	}, function (error_msg){console.log(error_msg);}, region);
 
 };
 
@@ -114,13 +120,9 @@ getVMmeasures = function() {
 	
 	//var measures = Monitoring.API.getVMmeasures(vm_id, options.success, options.error, endPoint);
 
-	var	measures = {
-		percCPULoad: 75,
-		percRAMUsed: 200,
-		percDiskUsed: 160
-	};
-
-	return measures;
+	measures. percCPULoad = 75;
+	measures.percRAMUsed = 200;
+	measures.percDiskUsed = 7;
 	
 };
 
@@ -133,7 +135,123 @@ refresh_data = function(speedometer, instanceId){
 
 	var measures = getVMmeasures();
 
-	updateSpeedometers(speedometer, instanceId, measures);
+	updateSpeedometers(speedometer, instanceId);
 
+};
+
+initGraph = function() {
+
+	var com_dataset = {
+		fillColor : "rgba(151,187,205,0.5)",
+		strokeColor : "#099EC6",
+		pointColor : "#002E67",
+		pointStrokeColor : "#fff"
+	};
+
+	var com_opt = {
+		scaleOverlay : false,
+		scaleOverride : false,
+		scaleLineColorX : "transparent",
+		scaleLineColorY : "#002E67",
+		scaleLineWidth : 3,
+		scaleFontFamily : "'comfortaa'",
+		scaleFontSize : 12,
+		scaleFontStyle : "normal",
+		scaleFontColorY : "#099EC6",
+		scaleFontColorX : "rgb(127,127,127)",
+		scaleShowGridLinesX : true,
+		scaleShowGridLinesY : false,
+		scaleShowMiniLinesY : false,
+		scaleGridLineColor : "rgba(0,0,0,.05)",
+		scaleGridLineWidth : 2,
+		bezierCurve : false,
+		pointDot : true,
+		pointDotRadius : 4,
+		pointDotStrokeWidth : 2,
+		datasetStroke : true,
+		datasetStrokeWidth : 1,
+		datasetFill : false ,
+		animation : true,
+		animationSteps : 60,
+		animationEasing : "easeOutQuart",
+		onAnimationComplete : null
+	};
+
+	var cpu_dataset = {datasets: [jQuery.extend({}, com_dataset)]};
+	var cpu_opt = jQuery.extend({}, com_opt);
+	cpu_opt.scaleSteps = null;
+	cpu_opt.scaleStepWidth = null;
+	cpu_opt.scaleStartValue = null;
+
+	var disk_dataset = {datasets: [jQuery.extend({}, com_dataset)]};
+	var disk_opt = jQuery.extend({}, com_opt);
+	disk_opt.scaleSteps = null;
+	disk_opt.scaleStepWidth = null;
+	disk_opt.scaleStartValue = null;
+
+	var mem_dataset = {datasets: [jQuery.extend({}, com_dataset)]};
+	var mem_opt = jQuery.extend({}, com_opt);
+	mem_opt.scaleSteps = null;
+	mem_opt.scaleStepWidth = null;
+	mem_opt.scaleStartValue = null;
+
+};
+
+initSpeedometers = function(divId, instanceId) {
+
+	id = '#' + divId
+	$(id).empty();
+
+	$(id).append(
+		$('<div>', {
+			id: 'refresh'
+		}).append(
+			$('<button>', {
+				id: 'refresh_button'
+			})),
+		$('<canvas>', {
+			id: 'graphic'
+		}));
+	
+	var speedometer = new Speedometer({elementId: divId, 
+										canvasId: 'graphic', 
+											size: 300, 
+											maxVal: element.maxVal, 
+											name: element.name, 
+											units: element.units
+										});
+	// ¡¡NO FUNCIONA!!
+	$('refresh_button').on('click', refresh_data(speedometer, instanceId));
+	speedometer.draw();
+
+	return speedometer;
+
+};
+
+updateSpeedometers = function(speedometer, instanceId) {
+
+	switch (instanceId) {
+
+		case 'cpu':
+		//var cpu = Math.round(stats[0].percCPULoad.value);
+		var cpu = measures.percCPULoad;
+		speedometer.drawWithInputValue(cpu);
+		break;
+
+		case 'disk':
+		//var disk = Math.round(stats[0].percDiskUsed.value);
+		var disk = measures.percDiskUsed;
+		speedometer.drawWithInputValue(disk);
+		break;
+
+		case 'mem':
+		//var mem = Math.round(stats[0].percRAMUsed.value);
+		var mem = measures.percRAMUsed;
+		speedometer.drawWithInputValue(mem);
+		break;
+
+		default:
+		alert("Error. Can't identify element to monitor");
+	}
 };
 
