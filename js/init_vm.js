@@ -120,7 +120,7 @@ getVMmeasures = function() {
 	
 	//var measures = Monitoring.API.getVMmeasures(vm_id, options.success, options.error, endPoint);
 
-	measures. percCPULoad = 75;
+	measures.percCPULoad = 75;
 	measures.percRAMUsed = 200;
 	measures.percDiskUsed = 7;
 	
@@ -130,14 +130,41 @@ getVMmeasures = function() {
 /** Refreshing monitoring measures
 			¡¡NO FUNCIONA!!
 */
+/*
+refreshData = function() {
 
-refresh_data = function(speedometer, instanceId){
+	switch(element.instanceId) {
 
-	var measures = getVMmeasures();
+		case 'cpu':
+		if (measures.percCPULoad < element.maxVal) {
+			measures.percCPULoad += 10 ;
+		} else {
+			measures.percCPULoad = 0;
+		}
+		updateSpeedometers(speedometer, element.instanceId);
+		break;
 
-	updateSpeedometers(speedometer, instanceId);
+		case 'disk':
+		if (measures.percDiskUsed < element.maxVal) {
+			measures.percDiskUsed += 5 ;
+		} else {
+			measures.percDiskUsed = 0;
+		}
+		updateSpeedometers(speedometer, element.instanceId);
+		break;
 
-};
+		case 'cpu':
+		if (measures.percRAMUsed < element.maxVal) {
+			measures.percRAMUsed += 300 ;
+		} else {
+			measures.percRAMUsed = 0;
+		}
+		updateSpeedometers(speedometer, element.instanceId);
+		break;
+	}
+}
+*/
+
 
 initGraph = function() {
 
@@ -221,7 +248,8 @@ initSpeedometers = function(divId, instanceId) {
 											units: element.units
 										});
 	// ¡¡NO FUNCIONA!!
-	$('refresh_button').on('click', refresh_data(speedometer, instanceId));
+	$('#refresh_button').on('click', function(){alert('Refreshing data');});
+
 	speedometer.draw();
 
 	return speedometer;
