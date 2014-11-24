@@ -1,6 +1,6 @@
-var vm_id ='fb8f4910-e7c0-4c0f-aa13-66912f96d14a';
-var token = '5-FUPeoY1ThuzoFuhdUQLtC3reJNkwJn0jK5dIfUwEZqqKDfBEGjNIwh9nbjAvZYrKQL-uFkqnj4AN234d0sDA';
-var tenant = '00000000000000000000000000000043';
+var vm_id ='bc257274-74fc-41bb-b845-3d28eed8f3d5';
+var token = 'aeB5zRzYi3AfWzF5GiqTHjzwYKosmpVs7hMZWOROI72LRBwZJX-M3G7VRonbv-fuGQrHxaX3GzSaWG2bq6Vu6w';
+var tenant = '00000000000000000000000000008201';
 var region = 'Spain';
 var instanceId = 'mem';
 var divId = 'speedometer';
