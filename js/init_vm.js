@@ -13,17 +13,19 @@ Params:
 - divId -> id of the div where you want to place the monitoring graphic.
 */
 
-
+var element;
+var measures;
 
 init_vm = function(vm_id, token, tenant, region, instanceId, divId){
 
 	initGraph();
 
 	element = {
-			instanceId: this.instanceId,
+			instanceId: instanceId,
 			name : "",
 			maxVal: 0,
-			units : ""
+			units : "",
+			speedometer: ""
 		};
 
 	JSTACK.Keystone.init('https://cloud.lab.fi-ware.org/keystone/v2.0/');
@@ -98,8 +100,8 @@ getVMProperties = function(vm_id, region, instanceId){
 			};
 
 			getVMmeasures()
-
-			updateSpeedometers(initSpeedometers(divId, instanceId), instanceId);
+			element.speedometer = initSpeedometers(divId, instanceId)
+			updateSpeedometers(element.speedometer, instanceId);
 
 			
 		},function (error_msg){console.log(error_msg);},region);
@@ -130,40 +132,44 @@ getVMmeasures = function() {
 /** Refreshing monitoring measures
 			¡¡NO FUNCIONA!!
 */
-/*
-refreshData = function() {
 
+refreshData = function() {
+	console.log(element);
 	switch(element.instanceId) {
 
 		case 'cpu':
-		if (measures.percCPULoad < element.maxVal) {
+		if (measures.percCPULoad + 10 <= element.maxVal) {
 			measures.percCPULoad += 10 ;
 		} else {
 			measures.percCPULoad = 0;
 		}
-		updateSpeedometers(speedometer, element.instanceId);
+		console.log(measures.percCPULoad);
+		updateSpeedometers(element.speedometer, element.instanceId);
 		break;
 
 		case 'disk':
-		if (measures.percDiskUsed < element.maxVal) {
-			measures.percDiskUsed += 5 ;
+		if (measures.percDiskUsed + 1 <= element.maxVal) {
+			measures.percDiskUsed += 1 ;
 		} else {
 			measures.percDiskUsed = 0;
 		}
-		updateSpeedometers(speedometer, element.instanceId);
+		updateSpeedometers(element.speedometer, element.instanceId);
 		break;
 
-		case 'cpu':
-		if (measures.percRAMUsed < element.maxVal) {
+		case 'mem':
+		if (measures.percRAMUsed + 300 <= element.maxVal) {
 			measures.percRAMUsed += 300 ;
 		} else {
 			measures.percRAMUsed = 0;
 		}
-		updateSpeedometers(speedometer, element.instanceId);
+		updateSpeedometers(element.speedometer, element.instanceId);
 		break;
+
+		default:
+		alert("Error. Can not identify 'instanceId' in refreshData");
 	}
 }
-*/
+
 
 
 initGraph = function() {
@@ -248,7 +254,7 @@ initSpeedometers = function(divId, instanceId) {
 											units: element.units
 										});
 	// ¡¡NO FUNCIONA!!
-	$('#refresh_button').on('click', function(){alert('Refreshing data');});
+	$('#refresh_button').on('click', refreshData);
 
 	speedometer.draw();
 
