@@ -5,28 +5,29 @@ the virtual machine you want to monitor. Once such data has been collected, draw
 graph of monitoring, on the screen.
 
 Params:
-- Endpoint ->
-- token -> 
-- vm_id -> id of the vm we want to monitor.
-- elementID -> key to identify the parameter you want to monitor. 
+- vm_id: 
+- token: 
+- tenant: id of the vm we want to monitor.
+- check_param: key to identify the parameter you want to monitor. 
 {Monitoring CPU: 'cpu', Monitoring disk: 'disk', Monitoring RAM: 'mem'}
-- divId -> id of the div where you want to place the monitoring graphic.
+- divId: id of the div where you want to place the monitoring graphic.
 */
 
-var element;
-var measures;
-
-init_vm = function(vm_id, token, tenant, region, instanceId, divId){
-
-	initGraph();
-
-	element = {
-			instanceId: instanceId,
+var element = {
+			id: "",
 			name : "",
 			maxVal: 0,
 			units : "",
 			speedometer: ""
 		};
+
+var measures;
+
+init_vm = function(vm_id, token, tenant, region, check_param, divId){
+
+	initGraph();
+
+	element.id = check_param;
 
 	JSTACK.Keystone.init('https://cloud.lab.fi-ware.org/keystone/v2.0/');
 
@@ -41,7 +42,7 @@ init_vm = function(vm_id, token, tenant, region, instanceId, divId){
 	    									  + compute.endpoints[e].publicURL.replace(/.*:[0-9]*/, "");
 		}
 
-		getVMProperties(vm_id, region, instanceId);
+		getVMProperties(vm_id, region);
 
 		
 
@@ -57,7 +58,7 @@ This function makes an API call to get the parameters of
 the vm's element we want to monitor.
 */
 
-getVMProperties = function(vm_id, region, instanceId){
+getVMProperties = function(vm_id, region){
 	
 	var server;
 	var flavor;
@@ -74,34 +75,38 @@ getVMProperties = function(vm_id, region, instanceId){
 		JSTACK.Nova.getflavordetail(server.flavor.id, function (resp) {
 			flavor = resp.flavor;
 
-			switch(instanceId){
+			switch(element.id){
 
 				case 'cpu':
+				console.log(element);
 				element.name = "CPU";
 				element.maxVal = 100;
 				element.units = "%";
 				break;
 
 				case 'disk':
+				console.log(element);
 				element.name = "DISK";
 				element.maxVal = flavor.disk;
 				element.units = "GB";
 				break;
 
 				case 'mem':
+				console.log(element);
 				element.name = "RAM";
 				element.maxVal = flavor.ram;
 				element.units = "MB";
 				break;
 
 				default:
-				alert("Error. Can not identify 'instanceId' in getVMProperties");
+				console.log(element);
+				alert("Error. Can not identify 'check_param' in getVMProperties");
 
 			};
 
-			getVMmeasures()
-			element.speedometer = initSpeedometers(divId, instanceId)
-			updateSpeedometers(element.speedometer, instanceId);
+			getVMmeasures();
+			element.speedometer = initSpeedometers(divId);
+			updateSpeedometers();
 
 			
 		},function (error_msg){console.log(error_msg);},region);
@@ -130,12 +135,12 @@ getVMmeasures = function() {
 
 
 /** Refreshing monitoring measures
-			¡¡NO FUNCIONA!!
+			
 */
 
 refreshData = function() {
-	console.log(element);
-	switch(element.instanceId) {
+
+	switch(element.id) {
 
 		case 'cpu':
 		if (measures.percCPULoad + 10 <= element.maxVal) {
@@ -143,8 +148,8 @@ refreshData = function() {
 		} else {
 			measures.percCPULoad = 0;
 		}
-		console.log(measures.percCPULoad);
-		updateSpeedometers(element.speedometer, element.instanceId);
+		console.log(measures);
+		updateSpeedometers();
 		break;
 
 		case 'disk':
@@ -153,7 +158,8 @@ refreshData = function() {
 		} else {
 			measures.percDiskUsed = 0;
 		}
-		updateSpeedometers(element.speedometer, element.instanceId);
+		console.log(measures);
+		updateSpeedometers();
 		break;
 
 		case 'mem':
@@ -162,15 +168,79 @@ refreshData = function() {
 		} else {
 			measures.percRAMUsed = 0;
 		}
-		updateSpeedometers(element.speedometer, element.instanceId);
+		console.log(measures);
+		updateSpeedometers();
 		break;
 
 		default:
-		alert("Error. Can not identify 'instanceId' in refreshData");
+		console.log(element);
+		alert("Error. Can not identify 'check_param' in refreshData");
 	}
 }
 
 
+
+
+
+initSpeedometers = function(divId) {
+
+	id = '#' + divId
+	$(id).empty();
+
+	$(id).append(
+		$('<div>', {
+			id: 'refresh'
+		}).append(
+			$('<button>', {
+				id: 'refresh_button'
+			})),
+		$('<canvas>', {
+			id: 'graphic'
+		}));
+	
+	var speedometer = new Speedometer({elementId: divId, 
+										canvasId: 'graphic', 
+											size: 300, 
+											maxVal: element.maxVal, 
+											name: element.name, 
+											units: element.units
+										});
+
+	$('#refresh_button').on('click', refreshData);
+
+	speedometer.draw();
+
+	return speedometer;
+
+};
+
+updateSpeedometers = function() {
+
+	switch (element.id) {
+
+		case 'cpu':
+		//var cpu = Math.round(stats[0].percCPULoad.value);
+		element.speedometer.drawWithInputValue(measures.percCPULoad);
+		console.log(element);
+		break;
+
+		case 'disk':
+		//var disk = Math.round(stats[0].percDiskUsed.value);
+		element.speedometer.drawWithInputValue(measures.percDiskUsed);
+		console.log(element);
+		break;
+
+		case 'mem':
+		//var mem = Math.round(stats[0].percRAMUsed.value);
+		element.speedometer.drawWithInputValue(measures.percRAMUsed);
+		console.log(element);
+		break;
+
+		default:
+		console.log(element);
+		alert("Error. Can't identify 'check_param' in updateSpeedometers");
+	}
+};
 
 initGraph = function() {
 
@@ -228,64 +298,5 @@ initGraph = function() {
 	mem_opt.scaleStepWidth = null;
 	mem_opt.scaleStartValue = null;
 
-};
-
-initSpeedometers = function(divId, instanceId) {
-
-	id = '#' + divId
-	$(id).empty();
-
-	$(id).append(
-		$('<div>', {
-			id: 'refresh'
-		}).append(
-			$('<button>', {
-				id: 'refresh_button'
-			})),
-		$('<canvas>', {
-			id: 'graphic'
-		}));
-	
-	var speedometer = new Speedometer({elementId: divId, 
-										canvasId: 'graphic', 
-											size: 300, 
-											maxVal: element.maxVal, 
-											name: element.name, 
-											units: element.units
-										});
-	// ¡¡NO FUNCIONA!!
-	$('#refresh_button').on('click', refreshData);
-
-	speedometer.draw();
-
-	return speedometer;
-
-};
-
-updateSpeedometers = function(speedometer, instanceId) {
-
-	switch (instanceId) {
-
-		case 'cpu':
-		//var cpu = Math.round(stats[0].percCPULoad.value);
-		var cpu = measures.percCPULoad;
-		speedometer.drawWithInputValue(cpu);
-		break;
-
-		case 'disk':
-		//var disk = Math.round(stats[0].percDiskUsed.value);
-		var disk = measures.percDiskUsed;
-		speedometer.drawWithInputValue(disk);
-		break;
-
-		case 'mem':
-		//var mem = Math.round(stats[0].percRAMUsed.value);
-		var mem = measures.percRAMUsed;
-		speedometer.drawWithInputValue(mem);
-		break;
-
-		default:
-		alert("Error. Can't identify element to monitor");
-	}
 };
 
