@@ -1,17 +1,4 @@
-/** Main function.
-
-Through calls to different secondary functions, collects the necessary information about
-the virtual machine you want to monitor. Once such data has been collected, draws the
-graph of monitoring, on the screen.
-
-Params:
-- vm_id: 
-- token: 
-- tenant: id of the vm we want to monitor.
-- check_param: key to identify the parameter you want to monitor. 
-{Monitoring CPU: 'cpu', Monitoring disk: 'disk', Monitoring RAM: 'mem'}
-- divId: id of the div where you want to place the monitoring graphic.
-*/
+// Global Variables
 
 var element = {
 			id: "",
@@ -21,7 +8,23 @@ var element = {
 			speedometer: ""
 		};
 
-var measures;
+measures = {
+		percCPULoad: 0,
+		percRAMUsed: 0,
+		percDiskUsed: 0
+	};
+
+/** Main function.
+
+Through calls to different secondary functions, collects the necessary information about
+the virtual machine you want to monitor. Once such data has been collected, draws the
+graph of monitoring, on the screen.
+
+Params:
+- check_param: key to identify the parameter you want to monitor. 
+{Monitoring CPU: 'cpu', Monitoring disk: 'disk', Monitoring RAM: 'mem'}
+- divId: id of the div where you want to place the monitoring graphic.
+*/
 
 init_vm = function(vm_id, token, tenant, region, check_param, divId){
 
@@ -63,12 +66,6 @@ getVMProperties = function(vm_id, region){
 	var server;
 	var flavor;
 
-	measures = {
-		percCPULoad: 0,
-		percRAMUsed: 0,
-		percDiskUsed: 0
-	};
-
 	//Getting the flavor id
 	JSTACK.Nova.getserverdetail(vm_id, function (resp) { server = resp.server;
 		//Getting VM parametres (disk.maxValue and ram.maxValue)	
@@ -78,24 +75,24 @@ getVMProperties = function(vm_id, region){
 			switch(element.id){
 
 				case 'cpu':
-				console.log(element);
 				element.name = "CPU";
 				element.maxVal = 100;
 				element.units = "%";
+				console.log(element);
 				break;
 
 				case 'disk':
-				console.log(element);
 				element.name = "DISK";
 				element.maxVal = flavor.disk;
 				element.units = "GB";
+				console.log(element);
 				break;
 
 				case 'mem':
-				console.log(element);
 				element.name = "RAM";
 				element.maxVal = flavor.ram;
 				element.units = "MB";
+				console.log(element);
 				break;
 
 				default:
@@ -127,9 +124,9 @@ getVMmeasures = function() {
 	
 	//var measures = Monitoring.API.getVMmeasures(vm_id, options.success, options.error, endPoint);
 
-	measures.percCPULoad = 75;
-	measures.percRAMUsed = 200;
-	measures.percDiskUsed = 7;
+	measures.percCPULoad = Math.floor(Math.random()*element.maxVal);
+	measures.percRAMUsed = Math.floor(Math.random()*element.maxVal);
+	measures.percDiskUsed = Math.floor(Math.random()*element.maxVal);
 	
 };
 
@@ -140,47 +137,16 @@ getVMmeasures = function() {
 
 refreshData = function() {
 
-	switch(element.id) {
+	getVMmeasures();
+	updateSpeedometers();
 
-		case 'cpu':
-		if (measures.percCPULoad + 10 <= element.maxVal) {
-			measures.percCPULoad += 10 ;
-		} else {
-			measures.percCPULoad = 0;
-		}
-		console.log(measures);
-		updateSpeedometers();
-		break;
-
-		case 'disk':
-		if (measures.percDiskUsed + 1 <= element.maxVal) {
-			measures.percDiskUsed += 1 ;
-		} else {
-			measures.percDiskUsed = 0;
-		}
-		console.log(measures);
-		updateSpeedometers();
-		break;
-
-		case 'mem':
-		if (measures.percRAMUsed + 300 <= element.maxVal) {
-			measures.percRAMUsed += 300 ;
-		} else {
-			measures.percRAMUsed = 0;
-		}
-		console.log(measures);
-		updateSpeedometers();
-		break;
-
-		default:
-		console.log(element);
-		alert("Error. Can not identify 'check_param' in refreshData");
-	}
-}
+};
 
 
 
+/** Initializing the monitoring graphic
 
+ */
 
 initSpeedometers = function(divId) {
 
@@ -214,6 +180,10 @@ initSpeedometers = function(divId) {
 
 };
 
+/** Updating Monitoring data in the graphic 
+
+*/
+
 updateSpeedometers = function() {
 
 	switch (element.id) {
@@ -221,26 +191,30 @@ updateSpeedometers = function() {
 		case 'cpu':
 		//var cpu = Math.round(stats[0].percCPULoad.value);
 		element.speedometer.drawWithInputValue(measures.percCPULoad);
-		console.log(element);
+		console.log(measures.percCPULoad);
 		break;
 
 		case 'disk':
 		//var disk = Math.round(stats[0].percDiskUsed.value);
 		element.speedometer.drawWithInputValue(measures.percDiskUsed);
-		console.log(element);
+		console.log(measures.percDiskUsed);
 		break;
 
 		case 'mem':
 		//var mem = Math.round(stats[0].percRAMUsed.value);
 		element.speedometer.drawWithInputValue(measures.percRAMUsed);
-		console.log(element);
+		console.log(element.percRAMUsed);
 		break;
 
 		default:
-		console.log(element);
+		console.log(element.id);
 		alert("Error. Can't identify 'check_param' in updateSpeedometers");
 	}
 };
+
+/** 
+ Initializing params of the graphic
+*/
 
 initGraph = function() {
 
