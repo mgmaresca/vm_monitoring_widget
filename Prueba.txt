@@ -5,4 +5,4 @@ var region = 'Spain';
 var check_param = 'mem';
 var divId = 'speedometer';
 
-init_vm(vm_id, token, tenant, region, instanceId, divId);
+init_vm(vm_id, token, tenant, region, check_param, divId);
